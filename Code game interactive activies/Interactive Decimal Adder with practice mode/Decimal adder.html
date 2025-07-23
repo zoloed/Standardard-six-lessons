@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Decimal Adder with Practice Mode</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro:wght@400;600&family=Patrick+Hand&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti for celebrations -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <!-- Tone.js for sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-image: url('https://i.postimg.cc/Njf4dKFC/Chat-GPT-Image-Jul-4-2025-06-55-35-PM.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        .main-container {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        .calculation-font {
+            font-family: 'Source Code Pro', monospace;
+        }
+        #highlight-box {
+            position: absolute;
+            border: 2px solid #fbbf24; /* amber-400 */
+            border-radius: 0.375rem; /* rounded-md */
+            background-color: rgba(251, 191, 36, 0.1);
+            transition: all 0.3s ease-in-out;
+            pointer-events: none;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .calc-cell {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 2.5rem; 
+            height: 4rem;
+            font-size: 2.25rem; 
+            box-sizing: border-box; 
+        }
+        .practice-input {
+            text-align: center;
+            border: 2px solid #d1d5db;
+            border-radius: 0.25rem;
+            background-color: #f9fafb;
+            transition: all 0.2s;
+        }
+        .carry-input {
+            width: 2rem;
+            height: 2rem;
+            font-size: 1.5rem;
+            text-align: center;
+            border: 2px solid #d1d5db;
+            border-radius: 0.25rem;
+            background-color: #f9fafb;
+            color: #ca8a04; /* yellow-600 */
+        }
+        .practice-input:focus, .carry-input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+        }
+        .input-correct {
+            border-color: #10b981 !important;
+            color: #059669 !important;
+            background-color: #d1fae5 !important;
+        }
+        .input-incorrect {
+            border-color: #ef4444 !important;
+            color: #dc2626 !important;
+            background-color: #fee2e2 !important;
+        }
+        .chalkboard-font {
+            font-family: 'Patrick Hand', cursive;
+        }
+        .horizontal-problem {
+            font-size: 2.25rem;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-6xl p-6 sm:p-8 space-y-6 rounded-xl shadow-2xl main-container">
+        
+        <!-- Mode Selection -->
+        <div id="mode-selection">
+            <div class="text-center">
+                <h1 class="text-3xl font-bold text-gray-800">Decimal Adder</h1>
+                <p class="mt-2 text-gray-600">Choose a mode to get started!</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                <button id="learnModeBtn" class="py-4 px-4 rounded-lg text-white bg-blue-500 hover:bg-blue-600 text-lg font-semibold shadow-md transition">Learn Step-by-Step</button>
+                <button id="practiceModeBtn" class="py-4 px-4 rounded-lg text-white bg-green-500 hover:bg-green-600 text-lg font-semibold shadow-md transition">Practice Yourself</button>
+            </div>
+        </div>
+
+        <!-- Input View (for both modes) -->
+        <div id="input-view" class="hidden">
+             <div class="text-center">
+                <h1 id="input-title" class="text-3xl font-bold text-gray-800"></h1>
+            </div>
+            <div class="space-y-4 mt-6">
+                <div>
+                    <label for="number1" class="text-sm font-medium text-gray-700">First Number</label>
+                    <input type="number" id="number1" step="0.001" placeholder="e.g., 9999.999" class="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label for="number2" class="text-sm font-medium text-gray-700">Second Number</label>
+                    <input type="number" id="number2" step="0.001" placeholder="e.g., 123.456" class="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+            </div>
+             <p id="input-error" class="text-sm text-red-600 mt-4 text-center h-5"></p>
+            <div class="mt-2 flex space-x-4">
+                 <button id="backToModesBtn" class="w-1/3 flex justify-center py-3 px-4 border rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300">Back</button>
+                <button id="startBtn" class="w-2/3 flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">Let's Go!</button>
+            </div>
+        </div>
+
+        <!-- Tutorial (Learn) View -->
+        <div id="tutorial-view" class="hidden">
+             <div class="bg-gray-800 p-4 rounded-lg calculation-font text-white shadow-inner flex justify-between items-center" style="background-color: #3a5a40;">
+                <div id="learn-horizontal-problem" class="pr-4 horizontal-problem">
+                    <span id="learn-h-problem-text"></span>
+                    <span id="learn-h-problem-answer" class="text-yellow-300 font-bold"></span>
+                </div>
+                <div id="calculation-area" class="relative flex flex-col items-end">
+                    <div id="highlight-box" class="hidden"></div>
+                    <div id="carry-row"></div>
+                    <div id="num1-row"></div>
+                    <div id="num2-row"></div>
+                    <hr class="border-gray-400 my-2 w-full">
+                    <div id="result-row"></div>
+                </div>
+            </div>
+            <div class="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
+                <p id="explanation" class="text-gray-800 text-xl"></p>
+            </div>
+            <div class="mt-6 flex space-x-4">
+                <button id="resetBtn" class="w-full py-2 px-4 rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300">Start Over</button>
+                <button id="nextStepBtn" class="w-full py-2 px-4 rounded-lg text-white bg-indigo-500 hover:bg-indigo-600">Next Step</button>
+            </div>
+        </div>
+        
+        <!-- Practice View -->
+        <div id="practice-view" class="hidden">
+            <div class="bg-gray-800 p-4 rounded-lg calculation-font text-white shadow-inner flex justify-between items-center" style="background-color: #3a5a40;">
+                <div id="practice-horizontal-problem" class="pr-4 horizontal-problem">
+                    <span id="practice-h-problem-text"></span>
+                    <span id="practice-h-problem-answer" class="text-yellow-300 font-bold"></span>
+                </div>
+                <div class="relative flex flex-col items-end">
+                    <div id="practice-carry-row"></div>
+                    <div id="practice-num1-row"></div>
+                    <div id="practice-num2-row"></div>
+                    <hr class="border-gray-400 my-2 w-full">
+                    <div id="practice-result-row"></div>
+                </div>
+            </div>
+            <div id="feedback-box" class="mt-4 p-3 rounded-lg text-center h-20 flex items-center justify-center transition-all duration-300 chalkboard-font text-3xl">
+                 <p id="feedback-text"></p>
+            </div>
+            <div class="mt-4">
+                <button id="practiceResetBtn" class="w-full py-2 px-4 rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300">Try New Numbers</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const modeSelection = document.getElementById('mode-selection');
+        const learnModeBtn = document.getElementById('learnModeBtn');
+        const practiceModeBtn = document.getElementById('practiceModeBtn');
+        const inputView = document.getElementById('input-view');
+        const inputTitle = document.getElementById('input-title');
+        const number1Input = document.getElementById('number1');
+        const number2Input = document.getElementById('number2');
+        const inputError = document.getElementById('input-error');
+        const startBtn = document.getElementById('startBtn');
+        const backToModesBtn = document.getElementById('backToModesBtn');
+        const tutorialView = document.getElementById('tutorial-view');
+        const calculationArea = document.getElementById('calculation-area');
+        const highlightBox = document.getElementById('highlight-box');
+        const learnHProblemText = document.getElementById('learn-h-problem-text');
+        const learnHProblemAnswer = document.getElementById('learn-h-problem-answer');
+        const carryRow = document.getElementById('carry-row');
+        const num1Row = document.getElementById('num1-row');
+        const num2Row = document.getElementById('num2-row');
+        const resultRow = document.getElementById('result-row');
+        const explanation = document.getElementById('explanation');
+        const nextStepBtn = document.getElementById('nextStepBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const practiceView = document.getElementById('practice-view');
+        const practiceHProblemText = document.getElementById('practice-h-problem-text');
+        const practiceHProblemAnswer = document.getElementById('practice-h-problem-answer');
+        const practiceCarryRow = document.getElementById('practice-carry-row');
+        const practiceNum1Row = document.getElementById('practice-num1-row');
+        const practiceNum2Row = document.getElementById('practice-num2-row');
+        const practiceResultRow = document.getElementById('practice-result-row');
+        const feedbackBox = document.getElementById('feedback-box');
+        const feedbackText = document.getElementById('feedback-text');
+        const practiceResetBtn = document.getElementById('practiceResetBtn');
+
+        // --- State Variables ---
+        let currentMode = '';
+        let learnSteps = [];
+        let practiceCalculations = [];
+        let currentStep = 0;
+        let correctAnswer = '';
+        let isAudioReady = false;
+
+        // --- Audio Setup (Tone.js) ---
+        let celebrationSound, wrongSound;
+        function setupAudio() {
+            celebrationSound = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: "sine" }
+            }).toDestination();
+            celebrationSound.volume.value = -6;
+
+            wrongSound = new Tone.Synth({
+                oscillator: { type: 'square' },
+                envelope: { attack: 0.005, decay: 0.2, sustain: 0, release: 0.2 }
+            }).toDestination();
+            wrongSound.volume.value = -12;
+        }
+
+        async function startAudio() {
+            if (!isAudioReady && Tone.context.state !== 'running') {
+                await Tone.start();
+                setupAudio();
+                isAudioReady = true;
+                console.log('Audio context started');
+            }
+        }
+
+        // --- Utility Functions ---
+        function formatNumbers(n1, n2) {
+            let [int1, dec1 = ''] = String(n1).split('.');
+            let [int2, dec2 = ''] = String(n2).split('.');
+            const maxDec = Math.max(dec1.length, dec2.length);
+            dec1 = dec1.padEnd(maxDec, '0');
+            dec2 = dec2.padEnd(maxDec, '0');
+            const maxInt = Math.max(int1.length, int2.length);
+            int1 = int1.padStart(maxInt, ' ');
+            int2 = int2.padStart(maxInt, ' ');
+            const num1Str = maxDec > 0 ? `${int1}.${dec1}` : int1;
+            // DEBUG FIX: Changed int1 to int2 in the else condition
+            const num2Str = maxDec > 0 ? `${int2}.${dec2}` : int2;
+            return { num1Str, num2Str };
+        }
+
+        function calculateCorrectAnswer(n1, n2) {
+            const num1 = parseFloat(n1) || 0;
+            const num2 = parseFloat(n2) || 0;
+            const n1Decimals = (String(n1).split('.')[1] || '').length;
+            const n2Decimals = (String(n2).split('.')[1] || '').length;
+            const maxDecimals = Math.max(n1Decimals, n2Decimals);
+            return (num1 + num2).toFixed(maxDecimals);
+        }
+        
+        function fireConfetti() {
+            confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+        }
+
+        function generateCalculationData(num1Str, num2Str) {
+            const practiceData = [];
+            let practiceCarry = 0;
+            for (let i = num1Str.length - 1; i >= 0; i--) {
+                if (num1Str[i] === '.' || (num1Str[i].trim() === '' && num2Str[i].trim() === '')) continue;
+                const digit1 = parseInt(num1Str[i]) || 0;
+                const digit2 = parseInt(num2Str[i]) || 0;
+                const sum = digit1 + digit2 + practiceCarry;
+                const resultDigit = sum % 10;
+                const carryOut = Math.floor(sum / 10);
+                practiceData.unshift({ digit1, digit2, carryIn: practiceCarry, sum, resultDigit, carryOut });
+                practiceCarry = carryOut;
+            }
+            if (practiceCarry > 0) {
+                practiceData.unshift({ digit1: 0, digit2: 0, carryIn: practiceCarry, sum: practiceCarry, resultDigit: practiceCarry, carryOut: 0 });
+            }
+
+            const learnSteps = [];
+            let resultArr = Array(num1Str.length).fill(' ');
+            let carry = 0;
+
+            learnSteps.push({ explanation: "First, we line up the numbers by their decimal points.", col: -1, carryOut: 0, result: resultArr.join('') });
+
+            for (let i = num1Str.length - 1; i >= 0; i--) {
+                const char1 = num1Str[i];
+                const char2 = num2Str[i];
+
+                if (char1 === '.') {
+                    resultArr[i] = '.';
+                    learnSteps.push({ explanation: "Bring the decimal point straight down.", col: i, carryOut: carry, result: resultArr.join('') });
+                    continue;
+                }
+                if (char1.trim() === '' && char2.trim() === '') continue;
+
+                const digit1 = parseInt(char1) || 0;
+                const digit2 = parseInt(char2) || 0;
+                const sum = digit1 + digit2 + carry;
+                const resultDigit = sum % 10;
+                const oldCarry = carry;
+                const carryOut = Math.floor(sum / 10);
+
+                resultArr[i] = resultDigit.toString();
+                
+                let expl = `In this column, add ${digit1} + ${digit2}`;
+                if (oldCarry > 0) expl += ` + ${oldCarry} (from the carry)`;
+                expl += ` = ${sum}. Write down the ${resultDigit}`;
+                if (carryOut > 0) expl += ` and carry the ${carryOut}.`; else expl += ".";
+                
+                learnSteps.push({ explanation: expl, col: i, carryOut: carryOut, result: resultArr.join('') });
+                carry = carryOut;
+            }
+
+            if (carry > 0) {
+                let finalResult = resultArr.join('');
+                finalResult = carry.toString() + finalResult.trimStart();
+                learnSteps.push({ explanation: `Finally, bring down the last carry of ${carry}.`, col: -1, carryOut: 0, result: finalResult });
+            }
+
+            const finalAnswer = calculateCorrectAnswer(number1Input.value, number2Input.value);
+            learnSteps.push({ explanation: `And we have our final answer! The sum is ${finalAnswer}.`, col: -1, carryOut: 0, result: finalAnswer });
+            
+            return { learnSteps, practiceData };
+        }
+
+        // --- Mode Switching & Start Logic ---
+        function showView(viewId) {
+            [modeSelection, inputView, tutorialView, practiceView].forEach(v => v.classList.add('hidden'));
+            document.getElementById(viewId).classList.remove('hidden');
+        }
+        
+        learnModeBtn.addEventListener('click', () => { 
+            startAudio();
+            currentMode = 'learn'; 
+            inputTitle.textContent = 'Learn Step-by-Step'; 
+            showView('input-view'); 
+        });
+        practiceModeBtn.addEventListener('click', () => { 
+            startAudio();
+            currentMode = 'practice'; 
+            inputTitle.textContent = 'Practice Yourself'; 
+            showView('input-view'); 
+        });
+        backToModesBtn.addEventListener('click', () => showView('mode-selection'));
+
+        startBtn.addEventListener('click', () => {
+            const val1 = number1Input.value;
+            const val2 = number2Input.value;
+
+            for (const numStr of [val1, val2]) {
+                if (numStr.trim() === '' || isNaN(parseFloat(numStr))) {
+                    inputError.textContent = 'Please enter valid numbers in both fields.';
+                    return;
+                }
+
+                const num = parseFloat(numStr);
+                const [integerPart, decimalPart] = String(numStr).split('.');
+
+                if (Math.abs(Math.trunc(num)) >= 10000) {
+                    inputError.textContent = 'Whole numbers must be less than 10,000.';
+                    return;
+                }
+
+                if (decimalPart && decimalPart.length > 3) {
+                    inputError.textContent = 'Please use up to three decimal places (thousandths).';
+                    return;
+                }
+            }
+            
+            inputError.textContent = '';
+            correctAnswer = calculateCorrectAnswer(val1, val2);
+            const { num1Str, num2Str } = formatNumbers(val1, val2);
+            const calcData = generateCalculationData(num1Str, num2Str);
+            learnSteps = calcData.learnSteps;
+            practiceCalculations = calcData.practiceData;
+            if (currentMode === 'learn') startLearnMode();
+            else if (currentMode === 'practice') startPracticeMode();
+        });
+
+        // --- Learn Mode ---
+        function startLearnMode() {
+            currentStep = 0;
+            showView('tutorial-view');
+            nextStepBtn.disabled = false;
+            nextStepBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+            const n1 = number1Input.value.trim();
+            const n2 = number2Input.value.trim();
+            learnHProblemText.innerHTML = `${n1} + ${n2} = `;
+            learnHProblemAnswer.innerHTML = '';
+            displayStep(currentStep);
+        }
+        function displayStep(stepIndex) {
+            const step = learnSteps[stepIndex];
+            const { num1Str, num2Str } = formatNumbers(number1Input.value, number2Input.value);
+            const finalAnswer = calculateCorrectAnswer(number1Input.value, number2Input.value);
+            const maxLength = Math.max(num1Str.length, num2Str.length + 2, finalAnswer.length);
+            
+            explanation.textContent = step.explanation;
+
+            const renderRow = (container, text) => {
+                container.innerHTML = '';
+                text.padStart(maxLength, ' ').split('').forEach((char) => {
+                    const cell = document.createElement('span');
+                    cell.className = 'calc-cell';
+                    cell.innerHTML = char === ' ' ? '&nbsp;' : char;
+                    container.append(cell);
+                });
+            };
+
+            const renderCarryRow = () => {
+                carryRow.innerHTML = '';
+                const carryValues = {};
+                const paddedNum1 = num1Str.padStart(maxLength, ' ');
+
+                for (let i = 0; i < stepIndex; i++) {
+                    const prevStep = learnSteps[i];
+                    if (prevStep.carryOut > 0 && prevStep.col !== -1) {
+                        const num1Padding = maxLength - num1Str.length;
+                        let carryCol = prevStep.col + num1Padding - 1;
+                        
+                        if (paddedNum1[carryCol] === '.') {
+                            carryCol--;
+                        }
+                        carryValues[carryCol] = prevStep.carryOut;
+                    }
+                }
+                for (let i = 0; i < maxLength; i++) {
+                    const cell = document.createElement('span');
+                    cell.className = 'calc-cell text-yellow-300';
+                    cell.innerHTML = carryValues[i] || '&nbsp;';
+                    carryRow.append(cell);
+                }
+            };
+            
+            renderCarryRow();
+            renderRow(num1Row, num1Str);
+            renderRow(num2Row, `+ ${num2Str}`);
+            renderRow(resultRow, step.result);
+
+            const num1Padding = maxLength - num1Str.length;
+            const highlightColIndex = step.col === -1 ? -1 : step.col + num1Padding;
+
+            if (highlightColIndex !== -1) {
+                const firstRowCells = num1Row.getElementsByClassName('calc-cell');
+                const targetCell = firstRowCells[highlightColIndex];
+
+                if (targetCell) {
+                    const boxTop = num1Row.offsetTop;
+                    const boxLeft = targetCell.offsetLeft;
+                    const boxHeight = (resultRow.offsetTop + resultRow.offsetHeight) - num1Row.offsetTop;
+                    const boxWidth = targetCell.offsetWidth;
+
+                    highlightBox.style.top = `${boxTop}px`;
+                    highlightBox.style.left = `${boxLeft}px`;
+                    highlightBox.style.height = `${boxHeight}px`;
+                    highlightBox.style.width = `${boxWidth}px`;
+                    highlightBox.classList.remove('hidden');
+                }
+            } else {
+                highlightBox.classList.add('hidden');
+            }
+            
+            if (stepIndex >= learnSteps.length - 1) {
+                nextStepBtn.disabled = true;
+                nextStepBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                learnHProblemAnswer.innerHTML = correctAnswer;
+            }
+        }
+        nextStepBtn.addEventListener('click', () => { if (currentStep < learnSteps.length - 1) displayStep(++currentStep); });
+        resetBtn.addEventListener('click', () => showView('mode-selection'));
+
+        // --- Practice Mode ---
+        function startPracticeMode() {
+            showView('practice-view');
+            const n1 = number1Input.value.trim();
+            const n2 = number2Input.value.trim();
+            practiceHProblemText.innerHTML = `${n1} + ${n2} = `;
+            practiceHProblemAnswer.innerHTML = '';
+
+            const { num1Str, num2Str } = formatNumbers(number1Input.value, number2Input.value);
+            const maxLength = Math.max(num1Str.length, num2Str.length + 2, correctAnswer.length);
+            
+            const createCell = (content) => {
+                const cell = document.createElement('span');
+                cell.className = 'calc-cell';
+                cell.innerHTML = content === ' ' ? '&nbsp;' : content;
+                return cell;
+            };
+
+            const renderTextRow = (container, text) => {
+                container.innerHTML = '';
+                text.padStart(maxLength, ' ').split('').forEach(char => container.append(createCell(char)));
+            };
+
+            renderTextRow(practiceNum1Row, num1Str);
+            renderTextRow(practiceNum2Row, `+ ${num2Str}`);
+            
+            feedbackBox.className = 'mt-4 p-3 rounded-lg text-center h-20 flex items-center justify-center transition-all duration-300 chalkboard-font text-3xl bg-blue-100 border border-blue-300';
+            feedbackText.textContent = 'Type the answer in the boxes, starting from the right!';
+            
+            practiceResultRow.innerHTML = '';
+            practiceCarryRow.innerHTML = '';
+            const resultInputs = [], carryInputs = [];
+            
+            let calcIndex = 0;
+            for (let i = 0; i < maxLength; i++) {
+                const answerChar = correctAnswer.padStart(maxLength, ' ')[i];
+                const hasCalculation = answerChar !== ' ' && answerChar !== '.';
+
+                const carryCell = createCell('');
+                if (hasCalculation) {
+                    const carryInput = document.createElement('input');
+                    carryInput.type = 'text';
+                    carryInput.maxLength = 1;
+                    carryInput.className = 'carry-input hidden';
+                    carryCell.append(carryInput);
+                    carryInputs.push(carryInput);
+                }
+                practiceCarryRow.append(carryCell);
+                
+                if (hasCalculation) {
+                    const resultInput = document.createElement('input');
+                    resultInput.type = 'text';
+                    resultInput.maxLength = 1;
+                    resultInput.className = 'practice-input calc-cell';
+                    resultInput.dataset.correctValue = answerChar;
+                    resultInput.dataset.calcIndex = calcIndex;
+                    practiceResultRow.append(resultInput);
+                    resultInputs.push(resultInput);
+                    calcIndex++;
+                } else {
+                    practiceResultRow.append(createCell(answerChar));
+                }
+            }
+            
+            resultInputs.forEach((input) => input.addEventListener('input', () => handlePracticeInput(input, resultInputs, carryInputs)));
+            carryInputs.forEach((input) => input.addEventListener('input', () => handleCarryInput(input, resultInputs, carryInputs)));
+            
+            if (resultInputs.length > 0) resultInputs[resultInputs.length - 1].focus();
+        }
+
+        function handlePracticeInput(input, resultInputs, carryInputs) {
+            const calcIndex = parseInt(input.dataset.calcIndex);
+            const calcData = practiceCalculations[calcIndex];
+            const currentIndex = resultInputs.indexOf(input);
+
+            if (input.value === String(calcData.resultDigit)) {
+                input.className = 'practice-input calc-cell input-correct';
+                input.disabled = true;
+                if (calcData.carryOut > 0) {
+                    const carryInput = carryInputs[currentIndex - 1];
+                    if (carryInput) {
+                        carryInput.classList.remove('hidden');
+                        carryInput.dataset.correctValue = String(calcData.carryOut);
+                        carryInput.dataset.generatingCalcIndex = calcIndex;
+                        feedbackText.textContent = `Correct! Now, what number do you carry?`;
+                        feedbackBox.className = 'mt-4 p-3 rounded-lg text-center h-20 flex items-center justify-center transition-all duration-300 chalkboard-font text-3xl bg-blue-100 border-blue-300';
+                        carryInput.focus();
+                    }
+                } else {
+                    feedbackText.textContent = `Correct! ${calcData.resultDigit} is right.`;
+                    feedbackBox.className = 'mt-4 p-3 rounded-lg text-center h-20 flex items-center justify-center transition-all duration-300 chalkboard-font text-3xl bg-green-100 border-green-500 text-green-800';
+                    const prevInput = resultInputs[currentIndex - 1];
+                    if (prevInput) {
+                        prevInput.focus();
+                    } else {
+                        feedbackText.textContent = '🎉 Great Job! You solved it! 🎉';
+                        practiceHProblemAnswer.innerHTML = correctAnswer;
+                        if (isAudioReady) celebrationSound.triggerAttackRelease(["C4", "E4", "G4", "C5"], "8n");
+                        fireConfetti();
+                    }
+                }
+            } else if (input.value !== '') {
+                if (isAudioReady) wrongSound.triggerAttackRelease("A2", "8n");
+                input.className = 'practice-input calc-cell input-incorrect';
+                let feedback = `Not quite. For that column, add ${calcData.digit1} + ${calcData.digit2}`;
+                if (calcData.carryIn > 0) feedback += ` + ${calcData.carryIn} (from the carry)`;
+                feedback += `, which is ${calcData.sum}. Try again!`;
+                feedbackText.textContent = feedback;
+                feedbackBox.className = 'mt-4 p-3 rounded-lg text-center h-20 flex items-center justify-center transition-all duration-300 chalkboard-font text-3xl bg-red-100 border-red-500 text-red-800';
+            }
+        }
+
+        function handleCarryInput(input, resultInputs, carryInputs) {
+            const generatingCalcIndex = parseInt(input.dataset.generatingCalcIndex);
+            const calcData = practiceCalculations[generatingCalcIndex];
+
+            if (input.value === input.dataset.correctValue) {
+                input.className = 'carry-input input-correct';
+                input.disabled = true;
+                feedbackText.textContent = `Yes! You carry the ${input.value}.`;
+                feedbackBox.className = 'mt-4 p-3 rounded-lg text-center h-20 flex items-center justify-center transition-all duration-300 chalkboard-font text-3xl bg-green-100 border-green-500 text-green-800';
+                
+                const resultInputToFocus = resultInputs[generatingCalcIndex - 1];
+                if (resultInputToFocus) {
+                    resultInputToFocus.focus();
+                } else {
+                    feedbackText.textContent = '🎉 Great Job! You solved it! 🎉';
+                    practiceHProblemAnswer.innerHTML = correctAnswer;
+                    if (isAudioReady) celebrationSound.triggerAttackRelease(["C4", "E4", "G4", "C5"], "8n");
+                    fireConfetti();
+                }
+            } else if (input.value !== '') {
+                 if (isAudioReady) wrongSound.triggerAttackRelease("A2", "8n");
+                 input.className = 'carry-input input-incorrect';
+                 feedbackText.textContent = `That's not the right carry number. Since the sum was ${calcData.sum}, you should carry the ${calcData.carryOut}.`;
+                 feedbackBox.className = 'mt-4 p-3 rounded-lg text-center h-20 flex items-center justify-center transition-all duration-300 chalkboard-font text-3xl bg-red-100 border-red-500 text-red-800';
+            }
+        }
+        
+        practiceResetBtn.addEventListener('click', () => showView('mode-selection'));
+        
+        showView('mode-selection');
+    </script>
+</body>
+</html>
+
